@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>너구리 아케이드</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<style>
+  :root{
+    --ink:#e8e4d8; --dim:#8a8578; --marq1:#ffd23e; --marq2:#ff5a1f;
+    --bezel:#16151c; --bezel-hi:#2b2936; --cab:#0a090f;
+  }
+  html,body{margin:0;padding:0}
+  body{
+    min-height:100vh; background:#07060b;
+    background-image:radial-gradient(ellipse 80% 60% at 50% 30%, #14121f 0%, #07060b 70%);
+    display:flex; flex-direction:column; align-items:center;
+    font-family:"Segoe UI", system-ui, sans-serif; color:var(--ink);
+    padding:20px 12px 40px; box-sizing:border-box;
+    overscroll-behavior:none;
+    -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
+  }
+  .marquee{
+    text-align:center; margin-bottom:14px; user-select:none;
+  }
+  .marquee h1{
+    margin:0; font-size:clamp(34px,7vw,56px); font-weight:900; letter-spacing:.08em;
+    background:linear-gradient(180deg, var(--marq1) 30%, var(--marq2) 90%);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    text-shadow:0 0 28px rgba(255,140,40,.25);
+  }
+  .marquee p{
+    margin:4px 0 0; font-family:Consolas,"Courier New",monospace; font-size:12px;
+    letter-spacing:.35em; text-transform:uppercase; color:var(--dim);
+  }
+  .cab{
+    background:var(--cab); border:1px solid var(--bezel-hi);
+    border-radius:18px; padding:16px; box-shadow:0 24px 60px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.04);
+  }
+  .screen{
+    position:relative; border-radius:10px; overflow:hidden;
+    border:6px solid var(--bezel); background:#000;
+    box-shadow:inset 0 0 40px rgba(0,0,0,.9);
+  }
+  canvas{
+    display:block; width:min(88vw,768px); aspect-ratio:8/7;
+    image-rendering:pixelated; background:#000;
+    touch-action:none;
+  }
+  .scan{
+    position:absolute; inset:0; pointer-events:none;
+    background:repeating-linear-gradient(0deg, rgba(0,0,0,.25) 0 1px, transparent 1px 3px);
+    box-shadow:inset 0 0 70px rgba(0,0,0,.55);
+  }
+  .glass{
+    position:absolute; inset:0; pointer-events:none;
+    background:radial-gradient(ellipse 90% 70% at 50% 12%, rgba(180,200,255,.05), transparent 55%);
+  }
+  .hint{
+    margin-top:12px; text-align:center; font-family:Consolas,"Courier New",monospace;
+    font-size:12px; letter-spacing:.12em; color:var(--dim); line-height:1.9;
+  }
+  .hint b{color:var(--marq1); font-weight:700}
+  .pad{display:none; margin-top:18px; gap:26px; align-items:center; justify-content:center; user-select:none; touch-action:none}
+  @media (pointer:coarse), (hover:none){ .pad{display:flex} }
+  .dgrid{display:grid; grid-template-columns:repeat(3,58px); grid-template-rows:repeat(3,58px); gap:5px}
+  .pbtn{
+    background:#1c1a26; border:1px solid #34313f; border-radius:10px; color:var(--ink);
+    font-size:20px; display:flex; align-items:center; justify-content:center;
+    -webkit-tap-highlight-color:transparent; touch-action:none;
+    -webkit-user-select:none; user-select:none;
+  }
+  .pbtn:active{background:#3a3548}
+  .pbtn:focus-visible{outline:2px solid var(--marq1)}
+  .jump{
+    width:88px; height:88px; border-radius:50%; font-size:14px; font-weight:800; letter-spacing:.1em;
+    background:linear-gradient(180deg,#c8331b,#8d1f0f); border:1px solid #e0654a; color:#ffe9d0;
+  }
+  .jump:active{filter:brightness(1.3)}
+  footer{
+    margin-top:22px; font-family:Consolas,"Courier New",monospace; font-size:11px;
+    letter-spacing:.15em; color:#565160;
+  }
+  @media (max-width:520px){
+    body{padding:10px 6px 28px}
+    .marquee h1{font-size:32px}
+    .marquee{margin-bottom:8px}
+    .cab{padding:8px; border-radius:12px}
+    .hint{font-size:10px; letter-spacing:.04em; line-height:1.7}
+    .pad{margin-top:12px; gap:18px}
+    footer{margin-top:14px}
+  }
+</style>
+</head>
+<body>
+
+<div class="marquee">
+  <h1>너구리</h1>
+  <p>1982 arcade homage · chiptune inside</p>
+</div>
+
+<div class="cab">
+  <div class="screen">
+    <canvas id="cv" width="256" height="224"></canvas>
+    <div class="scan"></div>
+    <div class="glass"></div>
+  </div>
+  <div class="hint">
+    <b>←→</b> 이동 &nbsp; <b>↑↓</b> 사다리 &nbsp; <b>SPACE</b> 점프 · 시작 &nbsp; <b>M</b> 음소거<br>
+    뱀과 가시는 점프로 넘고, 과일을 전부 먹으면 스테이지 클리어! 항아리는… 복불복입니다.
+  </div>
+</div>
+
+<div class="pad">
+  <div class="dgrid">
+    <span></span><button class="pbtn" data-k="u" aria-label="위">▲</button><span></span>
+    <button class="pbtn" data-k="l" aria-label="왼쪽">◀</button><span></span><button class="pbtn" data-k="r" aria-label="오른쪽">▶</button>
+    <span></span><button class="pbtn" data-k="d" aria-label="아래">▼</button><span></span>
+  </div>
+  <button class="pbtn jump" data-k="j" aria-label="점프">JUMP</button>
+</div>
+
+<footer>SQUARE-WAVE CHIPTUNE · CANVAS PIXEL RENDER · 256×224</footer>
+
+<script>
+'use strict';
+const cv = document.getElementById('cv');
+const g = cv.getContext('2d');
+g.imageSmoothingEnabled = false;
+
+// ───────────────────────── palette & sprites ─────────────────────────
+const PAL = {
+  K:'#3a2412', B:'#b06830', T:'#f0d0a0', W:'#ffffff', N:'#181008',
+  G:'#00a844', L:'#78e878', R:'#f83800', Y:'#f8d800', O:'#f8a800',
+  P:'#a838f8', C:'#c08040', D:'#7a4418', S:'#c8c8d0'
+};
+function makeSpr(rows){
+  const c = document.createElement('canvas');
+  c.width = rows[0].length; c.height = rows.length;
+  const x = c.getContext('2d');
+  rows.forEach((r,ry)=>{ for(let rx=0; rx<r.length; rx++){ const col = PAL[r[rx]]; if(col){ x.fillStyle=col; x.fillRect(rx,ry,1,1);} } });
+  return c;
+}
+function flipSpr(c){
+  const f = document.createElement('canvas'); f.width=c.width; f.height=c.height;
+  const x = f.getContext('2d'); x.translate(c.width,0); x.scale(-1,1); x.drawImage(c,0,0);
+  return f;
+}
+const R_BODY = [
+'...KK...KK..',
+'..KBBK.KBBK.',
+'.KBBBBKBBBK.',
+'.KBBBBBBBBK.',
+'KBKKTTTTKKBK',
+'KBKWTTTTWKBK',
+'.KTTTTTTTTK.',
+'.KTTTNNTTTK.',
+'.KBTTTTTTBK.',
+'..KBBBBBBK..'];
+const R_WALK1 = makeSpr(R_BODY.concat(['..KBK..KBK..','..KK....KK..']));
+const R_WALK2 = makeSpr(R_BODY.concat(['...KBKKBK...','...KK..KK...']));
+const R_WALK1F = flipSpr(R_WALK1), R_WALK2F = flipSpr(R_WALK2);
+
+const SNAKE1 = makeSpr([
+'.........GGG',
+'.GGG....GNGG',
+'GGGGGG.GGGGR',
+'GG..GGGGG...']);
+const SNAKE2 = makeSpr([
+'.........GGG',
+'GGG.....GNGG',
+'.GGGGG.GGGGR',
+'..GG.GGGG...']);
+const SNAKE1F = flipSpr(SNAKE1), SNAKE2F = flipSpr(SNAKE2);
+
+const FRUITS = [
+  { spr: makeSpr(['...K...','..KG...','.RRRRR.','RRRRRRR','RRRRRRR','RRRRRRR','.RRRRR.']), pts:100, name:'APPLE'  },
+  { spr: makeSpr(['...G...','.OOOOO.','OOOOOOO','OOOOOOO','OOOOOOO','.OOOOO.','.......']), pts:150, name:'ORANGE' },
+  { spr: makeSpr(['...K...','..K.K..','.K...K.','RR...RR','RRR.RRR','RRR.RRR','.R...R.']), pts:200, name:'CHERRY' },
+  { spr: makeSpr(['...K...','..P.P..','.P.P.P.','..P.P..','.P.P.P.','..P.P..','...P...']), pts:300, name:'GRAPE'  }
+];
+const POT = makeSpr(['..DDDD..','...CC...','.CCCCCC.','CCCCCCCC','CCCCCCCC','.CCCCCC.','..DDDD..']);
+const BEE1 = makeSpr(['...WW...','..WWWW..','.YNYNYN.','YNYNYNYN','.YNYNYN.','...NN...']);
+const BEE2 = makeSpr(['........','..WWWW..','.YNYNYN.','YNYNYNYN','.YNYNYN.','...NN...']);
+
+// ───────────────────────── 3×5 pixel font ─────────────────────────
+const FONT = {
+'0':[7,5,5,5,7],'1':[2,6,2,2,7],'2':[7,1,7,4,7],'3':[7,1,7,1,7],'4':[5,5,7,1,1],
+'5':[7,4,7,1,7],'6':[7,4,7,5,7],'7':[7,1,1,2,2],'8':[7,5,7,5,7],'9':[7,5,7,1,7],
+'A':[2,5,7,5,5],'B':[6,5,6,5,6],'C':[3,4,4,4,3],'D':[6,5,5,5,6],'E':[7,4,6,4,7],
+'F':[7,4,6,4,4],'G':[7,4,5,5,7],'H':[5,5,7,5,5],'I':[7,2,2,2,7],'J':[1,1,1,5,2],
+'K':[5,6,4,6,5],'L':[4,4,4,4,7],'M':[5,7,7,5,5],'N':[5,7,5,5,5],'O':[2,5,5,5,2],
+'P':[6,5,6,4,4],'Q':[2,5,5,7,3],'R':[6,5,6,6,5],'S':[3,4,2,1,6],'T':[7,2,2,2,2],
+'U':[5,5,5,5,7],'V':[5,5,5,5,2],'W':[5,5,7,7,5],'X':[5,5,2,5,5],'Y':[5,5,2,2,2],
+'Z':[7,1,2,4,7],'-':[0,0,7,0,0],'!':[2,2,2,0,2],'.':[0,0,0,0,2],' ':[0,0,0,0,0]
+};
+function txt(s, x, y, col){
+  g.fillStyle = col;
+  s = String(s).toUpperCase();
+  for(let i=0;i<s.length;i++){
+    const gl = FONT[s[i]] || FONT[' '];
+    for(let r=0;r<5;r++) for(let b=0;b<3;b++)
+      if(gl[r] & (4>>b)) g.fillRect(x+i*4+b, y+r, 1, 1);
+  }
+}
+const pad0 = (n,w)=>String(n).padStart(w,'0');
+
+// ───────────────────────── audio (chiptune) ─────────────────────────
+let AC = null, muted = false;
+let nextT = 0, stepIdx = 0;
+const SPB = 0.15;                       // seconds per 8th note
+const fq = n => 440 * Math.pow(2, n/12);
+// Shojoji tanuki-bayashi 풍 멜로디 (반음: A4 기준)
+const MEL = [[-2,2],[-2,1],[0,1],[-2,2],[-5,2],
+             [-2,2],[-2,1],[0,1],[-2,2],[-5,2],
+             [ 3,2],[ 3,1],[0,1],[-2,2],[-5,2],
+             [-7,1],[-5,1],[-7,1],[-9,1],[-9,2],[null,2]];
+const STEPS = new Array(32).fill(null);
+{ let p=0; MEL.forEach(([n,l])=>{ if(n!==null) STEPS[p]={n,l}; p+=l; }); }
+
+function ensureAudio(){
+  if(!AC){
+    AC = new (window.AudioContext||window.webkitAudioContext)();
+    nextT = AC.currentTime + 0.05;
+  }
+  // iOS Safari: 사용자 제스처 시점에 suspended 상태 해제 필요
+  if(AC.state === 'suspended') AC.resume();
+}
+function tone(f, t, d, type, v){
+  if(!AC || muted) return;
+  const o=AC.createOscillator(), ga=AC.createGain();
+  o.type=type; o.frequency.setValueAtTime(f,t);
+  ga.gain.setValueAtTime(v,t);
+  ga.gain.exponentialRampToValueAtTime(0.001, t+d);
+  o.connect(ga).connect(AC.destination); o.start(t); o.stop(t+d);
+}
+function beep(f0, f1, d, type, v){
+  if(!AC || muted) return;
+  const t=AC.currentTime, o=AC.createOscillator(), ga=AC.createGain();
+  o.type=type; o.frequency.setValueAtTime(f0,t);
+  o.frequency.exponentialRampToValueAtTime(Math.max(f1,1), t+d);
+  ga.gain.setValueAtTime(v,t); ga.gain.exponentialRampToValueAtTime(0.001,t+d);
+  o.connect(ga).connect(AC.destination); o.start(t); o.stop(t+d);
+}
+function musicTick(){
+  if(!AC) return;
+  if(nextT < AC.currentTime - 1) nextT = AC.currentTime;   // 탭 복귀 시 따라잡기
+  while(nextT < AC.currentTime + 0.25){
+    if(mode==='play' && !muted){
+      const s = stepIdx % 32, ev = STEPS[s];
+      if(ev) tone(fq(ev.n), nextT, ev.l*SPB*0.9, 'square', 0.045);
+      if(s%2===0) tone(fq((s>>1)%2 ? -14 : -21), nextT, SPB*1.7, 'triangle', 0.06);
+    }
+    nextT += SPB; stepIdx++;
+  }
+}
+const sfxJump  = ()=>beep(240,520,0.10,'square',0.08);
+const sfxEat   = ()=>beep(660,990,0.06,'square',0.09);
+const sfxBonus = ()=>{ beep(880,880,0.07,'square',0.08); setTimeout(()=>beep(1320,1320,0.12,'square',0.08),80); };
+const sfxBee   = ()=>beep(200,160,0.35,'sawtooth',0.07);
+function sfxDeath(){
+  if(!AC||muted) return; const t=AC.currentTime;
+  [[300,0],[250,.12],[200,.24],[120,.36]].forEach(([f,dt])=>tone(f,t+dt,0.14,'square',0.08));
+  beep(500,60,0.5,'triangle',0.09);
+}
+function sfxClear(){
+  if(!AC||muted) return; const t=AC.currentTime;
+  [0,4,7,12,16,19,24].forEach((n,i)=>tone(fq(n+3), t+i*0.09, 0.14, 'square', 0.07));
+}
+
+// ───────────────────────── game state ─────────────────────────
+const FLOORS = [205,168,131,94,57];       // 발판 윗면 y (아래→위)
+const JT = 26, JUMP_H = 14, SPD = 1.15, CLIMB = 1.0;
+let mode='title', frame=0, blink=0;
+let stage=1, score=0, lives=3, nextLife=10000;
+let hi = +(localStorage.getItem('neoguri_hi')||10000);
+let timer=3600, panic=false;
+let ladders=[], spikes=[], fruits=[], pots=[], snakes=[], bees=[], pops=[];
+let P = null;
+let clearT=0, deadT=0, overT=0, bonusShown=0;
+
+function mulberry(seed){
+  return function(){
+    seed|=0; seed = seed+0x6D2B79F5|0;
+    let t = Math.imul(seed^seed>>>15, 1|seed);
+    t = t+Math.imul(t^t>>>7, 61|t)^t;
+    return ((t^t>>>14)>>>0)/4294967296;
+  };
+}
+function genStage(n){
+  const r = mulberry(n*7919+13);
+  ladders=[]; spikes=[]; fruits=[]; pots=[]; snakes=[]; bees=[]; pops=[];
+  for(let gp=0; gp<4; gp++){
+    const xs=[]; let guard=0;
+    while(xs.length<2 && guard++<200){
+      const x = 16 + Math.floor(r()*224);
+      if(xs.every(o=>Math.abs(o-x)>70)) xs.push(x);
+    }
+    xs.forEach(x=>ladders.push({x, lo:FLOORS[gp], hi:FLOORS[gp+1]}));
+  }
+  const nearLadder = (f,x,dist)=>ladders.some(l=>(l.lo===FLOORS[f]||l.hi===FLOORS[f]) && Math.abs(l.x-x)<dist);
+  const nSpk = 2+Math.min(n,4); let guard=0;
+  while(spikes.length<nSpk && guard++<400){
+    const f=Math.floor(r()*5), x=20+Math.floor(r()*216);
+    if(f===0 && x<48) continue;
+    if(nearLadder(f,x,18)) continue;
+    if(spikes.some(s=>s.f===f && Math.abs(s.x-x)<26)) continue;
+    spikes.push({f,x});
+  }
+  guard=0;
+  while(fruits.length<12 && guard++<600){
+    const f=Math.floor(r()*5), x=14+Math.floor(r()*228);
+    if(f===0 && x<36) continue;
+    if(spikes.some(s=>s.f===f && Math.abs(s.x-x)<16)) continue;
+    if(fruits.some(o=>o.f===f && Math.abs(o.x-x)<15)) continue;
+    fruits.push({f,x,t:Math.floor(r()*4)});
+  }
+  guard=0;
+  while(pots.length<2 && guard++<300){
+    const f=1+Math.floor(r()*4), x=18+Math.floor(r()*220);
+    if(nearLadder(f,x,14)) continue;
+    if(spikes.some(s=>s.f===f && Math.abs(s.x-x)<16)) continue;
+    if(fruits.some(o=>o.f===f && Math.abs(o.x-x)<12)) continue;
+    if(pots.some(o=>o.f===f && Math.abs(o.x-x)<30)) continue;
+    pots.push({f,x,used:false});
+  }
+  const nSnk = 3+Math.min(n,4);
+  for(let i=0;i<nSnk;i++){
+    const f=Math.floor(r()*5), x=40+Math.floor(r()*180);
+    const min=Math.max(8, x-40-r()*60), max=Math.min(248, x+40+r()*60);
+    if(max-min<40){ i--; continue; }
+    snakes.push({f, x, dir:r()<0.5?-1:1, min, max, sp:0.35+n*0.045+r()*0.15});
+  }
+  timer=3600; panic=false;
+}
+function spawnPlayer(inv){
+  P = {x:16, y:FLOORS[0], f:0, dir:1, st:'walk', jt:0, lad:null, anim:0, inv:inv||0};
+}
+function startGame(){
+  stage=1; score=0; lives=3; nextLife=10000;
+  genStage(stage); spawnPlayer(60);
+  mode='play'; stepIdx=0;
+  if(AC) nextT = AC.currentTime + 0.1;
+}
+function addScore(n){
+  score += n;
+  if(score >= nextLife){ lives++; nextLife += 10000; sfxBonus(); pops.push({x:P.x,y:P.y-16,s:'1UP!',t:60,c:'#f83800'}); }
+  if(score > hi){ hi = score; localStorage.setItem('neoguri_hi', hi); }
+}
+
+// ───────────────────────── input ─────────────────────────
+const key = {l:false,r:false,u:false,d:false};
+let jumpEdge = false;
+function press(action){
+  ensureAudio();
+  if(mode==='title' || mode==='over'){ if(action==='j'){ startGame(); return true; } }
+  return false;
+}
+addEventListener('keydown', e=>{
+  const map = {ArrowLeft:'l',ArrowRight:'r',ArrowUp:'u',ArrowDown:'d',' ':'j','z':'j','Z':'j',Enter:'j'};
+  const k = map[e.key];
+  if(k) e.preventDefault();
+  if(e.key==='m'||e.key==='M'){ muted=!muted; return; }
+  if(!k) return;
+  if(k==='j'){ if(!e.repeat && !press('j')) jumpEdge = true; }
+  else key[k] = true;
+  ensureAudio();
+});
+addEventListener('keyup', e=>{
+  const map = {ArrowLeft:'l',ArrowRight:'r',ArrowUp:'u',ArrowDown:'d'};
+  if(map[e.key]) key[map[e.key]] = false;
+});
+addEventListener('blur', ()=>{ key.l=key.r=key.u=key.d=false; });
+cv.addEventListener('pointerdown', ()=>{ ensureAudio(); if(mode==='title'||mode==='over') startGame(); });
+document.querySelectorAll('.pbtn').forEach(b=>{
+  const k = b.dataset.k;
+  const on = e=>{ e.preventDefault(); ensureAudio();
+    if(k==='j'){ if(!press('j')) jumpEdge=true; } else key[k]=true; };
+  const off = e=>{ e.preventDefault(); if(k!=='j') key[k]=false; };
+  b.addEventListener('pointerdown', on);
+  b.addEventListener('pointerup', off);
+  b.addEventListener('pointerleave', off);
+  b.addEventListener('pointercancel', off);
+});
+
+// ───────────────────────── update ─────────────────────────
+function killPlayer(){
+  if(P.inv>0 || P.st==='dead') return;
+  P.st='dead'; deadT=0; sfxDeath();
+}
+function update(){
+  frame++; blink++;
+  if(mode==='play'){
+    if(P.inv>0) P.inv--;
+    if(P.st!=='dead'){
+      timer--;
+      if(timer<=0 && !panic){ panic=true; snakes.forEach(s=>s.sp*=1.7); }
+    }
+    // ── player ──
+    if(P.st==='walk'){
+      let moved=false;
+      if(key.l){ P.x-=SPD; P.dir=-1; moved=true; }
+      if(key.r){ P.x+=SPD; P.dir=1; moved=true; }
+      P.x = Math.max(6, Math.min(250, P.x));
+      if(moved) P.anim++;
+      if(key.u){
+        const L = ladders.find(l=>l.lo===FLOORS[P.f] && Math.abs(l.x-P.x)<6);
+        if(L){ P.st='climb'; P.lad=L; P.x=L.x; P.y-=CLIMB; }
+      } else if(key.d){
+        const L = ladders.find(l=>l.hi===FLOORS[P.f] && Math.abs(l.x-P.x)<6);
+        if(L){ P.st='climb'; P.lad=L; P.x=L.x; P.y+=CLIMB; }
+      }
+      if(jumpEdge && P.st==='walk'){ P.st='jump'; P.jt=0; sfxJump(); }
+    } else if(P.st==='climb'){
+      if(key.u) P.y -= CLIMB;
+      if(key.d) P.y += CLIMB;
+      P.anim++;
+      P.y = Math.max(P.lad.hi, Math.min(P.lad.lo, P.y));
+      if(P.y<=P.lad.hi){ P.y=P.lad.hi; P.f=FLOORS.indexOf(P.lad.hi); P.st='walk'; }
+      else if(P.y>=P.lad.lo){ P.y=P.lad.lo; P.f=FLOORS.indexOf(P.lad.lo); P.st='walk'; }
+    } else if(P.st==='jump'){
+      P.jt++;
+      if(key.l){ P.x-=SPD; P.dir=-1; }
+      if(key.r){ P.x+=SPD; P.dir=1; }
+      P.x = Math.max(6, Math.min(250, P.x));
+      P.y = FLOORS[P.f] - Math.sin(Math.PI*P.jt/JT)*JUMP_H;
+      if(P.jt>=JT){ P.y=FLOORS[P.f]; P.st='walk'; }
+    } else if(P.st==='dead'){
+      deadT++;
+      P.y += 0.8;
+      if(deadT>=100){
+        lives--;
+        if(lives<=0){ mode='over'; overT=0; }
+        else spawnPlayer(120);
+      }
+    }
+    jumpEdge = false;
+
+    // ── snakes ──
+    snakes.forEach(s=>{
+      s.x += s.dir*s.sp;
+      if(s.x<s.min){ s.x=s.min; s.dir=1; }
+      if(s.x>s.max){ s.x=s.max; s.dir=-1; }
+    });
+    // ── bees ──
+    bees = bees.filter(b=>b.t>0);
+    bees.forEach(b=>{
+      b.t--;
+      const tx=P.x, ty=P.y-6;
+      b.vx += (tx>b.x?0.045:-0.045); b.vy += (ty>b.y?0.045:-0.045);
+      b.vx = Math.max(-1.1, Math.min(1.1, b.vx));
+      b.vy = Math.max(-1.1, Math.min(1.1, b.vy));
+      b.x += b.vx; b.y += b.vy;
+    });
+    // ── popups ──
+    pops = pops.filter(p=>p.t>0);
+    pops.forEach(p=>{ p.t--; p.y-=0.3; });
+
+    // ── collisions ──
+    if(P.st!=='dead' && P.inv<=0){
+      for(const s of snakes)
+        if(Math.abs(FLOORS[s.f]-P.y)<7 && Math.abs(P.x-(s.x+6))<9){ killPlayer(); break; }
+      if(P.st!=='dead') for(const s of spikes)
+        if(Math.abs(FLOORS[s.f]-P.y)<5 && Math.abs(P.x-s.x)<7){ killPlayer(); break; }
+      if(P.st!=='dead') for(const b of bees)
+        if(Math.abs(b.x-P.x)<7 && Math.abs(b.y-(P.y-6))<9){ killPlayer(); break; }
+    }
+    if(P.st!=='dead'){
+      for(let i=fruits.length-1;i>=0;i--){
+        const f=fruits[i];
+        if(Math.abs(FLOORS[f.f]-P.y)<9 && Math.abs(P.x-f.x)<7){
+          const pts = FRUITS[f.t].pts;
+          addScore(pts); sfxEat();
+          pops.push({x:f.x,y:FLOORS[f.f]-10,s:String(pts),t:45,c:'#ffffff'});
+          fruits.splice(i,1);
+        }
+      }
+      for(const pot of pots){
+        if(!pot.used && Math.abs(FLOORS[pot.f]-P.y)<6 && Math.abs(P.x-pot.x)<8){
+          pot.used=true;
+          if(Math.random()<0.6){
+            addScore(500); sfxBonus();
+            pops.push({x:pot.x,y:FLOORS[pot.f]-10,s:'500',t:50,c:'#f8d800'});
+          } else {
+            sfxBee();
+            bees.push({x:pot.x, y:FLOORS[pot.f]-8, vx:0, vy:-0.8, t:480});
+            pops.push({x:pot.x,y:FLOORS[pot.f]-10,s:'!',t:40,c:'#f83800'});
+          }
+        }
+      }
+      if(fruits.length===0 && mode==='play'){
+        mode='clear'; clearT=0;
+        bonusShown = Math.ceil(timer/60)*10;
+        addScore(bonusShown); sfxClear();
+      }
+    }
+  }
+  else if(mode==='clear'){
+    clearT++;
+    if(clearT>=170){ stage++; genStage(stage); spawnPlayer(60); mode='play'; }
+  }
+  else if(mode==='over'){
+    overT++;
+    if(overT>=300) mode='title';
+  }
+  musicTick();
+}
+
+// ───────────────────────── draw ─────────────────────────
+function drawWorld(){
+  // ladders (behind platforms)
+  g.fillStyle = PAL.Y;
+  ladders.forEach(l=>{
+    g.fillRect(l.x-4, l.hi, 2, l.lo-l.hi);
+    g.fillRect(l.x+2, l.hi, 2, l.lo-l.hi);
+    for(let y=l.hi+3; y<l.lo; y+=5) g.fillRect(l.x-3, y, 6, 1);
+  });
+  // platforms
+  FLOORS.forEach(y=>{
+    g.fillStyle = '#d84c10'; g.fillRect(0, y+1, 256, 4);
+    g.fillStyle = '#8a2c08';
+    for(let x=0; x<256; x+=8) g.fillRect(x+6, y+2, 2, 3);
+    g.fillStyle = '#ffb060'; g.fillRect(0, y+1, 256, 1);
+  });
+  // spikes
+  g.fillStyle = PAL.S;
+  spikes.forEach(s=>{
+    const fy = FLOORS[s.f];
+    for(let i=-1;i<=1;i++){
+      const bx = s.x + i*3;
+      g.fillRect(bx-1, fy-1, 3, 1); g.fillRect(bx-1, fy-2, 3, 1);
+      g.fillRect(bx, fy-4, 1, 2);
+    }
+  });
+  // pots / fruits
+  pots.forEach(p=>{ if(!p.used) g.drawImage(POT, p.x-4, FLOORS[p.f]-7); });
+  fruits.forEach(f=> g.drawImage(FRUITS[f.t].spr, f.x-3, FLOORS[f.f]-7));
+  // snakes
+  snakes.forEach(s=>{
+    const fr = (frame>>3)&1;
+    const spr = s.dir>0 ? (fr?SNAKE1:SNAKE2) : (fr?SNAKE1F:SNAKE2F);
+    g.drawImage(spr, s.x, FLOORS[s.f]-4);
+  });
+  // bees
+  bees.forEach(b=> g.drawImage((frame>>2)&1?BEE1:BEE2, b.x-4, b.y-3));
+  // player
+  if(P){
+    const visible = P.inv<=0 || (P.inv>>2)&1;
+    if(visible){
+      let spr;
+      if(P.st==='dead'){
+        g.save();
+        g.translate(P.x, P.y-6);
+        g.scale(1,-1);
+        g.drawImage(P.dir>0?R_WALK1:R_WALK1F, -6, -6);
+        g.restore();
+      } else {
+        const fr = (P.st==='walk'&&!key.l&&!key.r&&P.st!=='climb') ? 0 : (P.anim>>3)&1;
+        if(P.dir>0) spr = fr?R_WALK2:R_WALK1; else spr = fr?R_WALK2F:R_WALK1F;
+        g.drawImage(spr, P.x-6, P.y-12);
+      }
+    }
+  }
+  // popups
+  pops.forEach(p=> txt(p.s, p.x-p.s.length*2, p.y, p.c));
+}
+function drawHUD(){
+  txt('1UP', 4, 2, (blink>>4)&1 ? '#f83800' : '#a02000');
+  txt(pad0(score,6), 20, 2, '#ffffff');
+  txt('HI', 96, 2, '#f8d800');
+  txt(pad0(hi,6), 108, 2, '#ffffff');
+  txt('ST '+pad0(stage,2), 226, 2, '#00e8d8');
+  // lives
+  for(let i=0;i<Math.min(lives-1,6);i++){
+    g.fillStyle=PAL.B; g.fillRect(4+i*9, 10, 6, 5);
+    g.fillStyle=PAL.K; g.fillRect(4+i*9, 9, 2, 2); g.fillRect(8+i*9, 9, 2, 2);
+  }
+  // time bar
+  txt('TIME', 150, 10, '#8888a0');
+  const w = Math.max(0, Math.round(timer/3600*72));
+  g.fillStyle = '#282838'; g.fillRect(170, 10, 72, 5);
+  g.fillStyle = panic ? ((blink>>3)&1?'#f83800':'#801000')
+              : (timer<900 ? '#f8a800' : '#00d060');
+  if(w>0) g.fillRect(170, 10, w, 5);
+}
+function drawTitle(){
+  g.fillStyle='#f8d800';
+  g.font='bold 40px sans-serif'; g.textAlign='center'; g.textBaseline='middle';
+  g.fillStyle='#802000'; g.fillText('너구리', 130, 58);
+  g.fillStyle='#f8d800'; g.fillText('너구리', 128, 56);
+  txt('- PONPOKO HOMAGE 1982 -', 82, 82, '#00e8d8');
+  // fruit table
+  FRUITS.forEach((f,i)=>{
+    const y = 104 + i*14;
+    g.drawImage(f.spr, 88, y);
+    txt(f.name, 102, y+1, '#ffffff');
+    txt(String(f.pts)+' PTS', 136, y+1, '#f8a800');
+  });
+  g.drawImage(POT, 88, 160); txt('...?', 102, 161, '#c08040');
+  if((blink>>4)&1) txt('PUSH SPACE KEY', 100, 186, '#ffffff');
+  txt('HI-SCORE '+pad0(hi,6), 98, 202, '#f8d800');
+  g.drawImage(R_WALK1, 40, 120);
+  g.drawImage(SNAKE1F, 190, 126);
+}
+function draw(){
+  g.fillStyle='#000'; g.fillRect(0,0,256,224);
+  if(mode==='title'){ drawTitle(); return; }
+  drawWorld();
+  drawHUD();
+  if(mode==='clear'){
+    txt('STAGE CLEAR!', 104, 100, (blink>>3)&1?'#f8d800':'#f83800');
+    txt('TIME BONUS '+bonusShown, 100, 112, '#ffffff');
+  }
+  if(mode==='over'){
+    g.fillStyle='rgba(0,0,0,0.55)'; g.fillRect(0,88,256,48);
+    txt('GAME OVER', 110, 104, '#f83800');
+    if((blink>>4)&1) txt('PUSH SPACE KEY', 100, 118, '#ffffff');
+  }
+  if(muted) txt('MUTE', 4, 216, '#666680');
+}
+
+// ───────────────────────── main loop (60fps fixed) ─────────────────────────
+let last = performance.now(), acc = 0;
+function loop(now){
+  acc += Math.min(now-last, 100); last = now;
+  while(acc >= 1000/60){ update(); acc -= 1000/60; }
+  draw();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
