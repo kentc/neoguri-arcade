@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <title>너구리 아케이드</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#07060b">
 <style>
   :root{
     --ink:#e8e4d8; --dim:#8a8578; --marq1:#ffd23e; --marq2:#ff5a1f;
@@ -80,14 +83,17 @@
     margin-top:22px; font-family:Consolas,"Courier New",monospace; font-size:11px;
     letter-spacing:.15em; color:#565160;
   }
-  @media (max-width:520px){
-    body{padding:10px 6px 28px}
-    .marquee h1{font-size:32px}
-    .marquee{margin-bottom:8px}
-    .cab{padding:8px; border-radius:12px}
-    .hint{font-size:10px; letter-spacing:.04em; line-height:1.7}
-    .pad{margin-top:12px; gap:18px}
-    footer{margin-top:14px}
+  /* ── 모바일: 장식 전부 제거, 게임 화면을 폭 100%로 ── */
+  @media (max-width:700px){
+    body{padding:0 0 calc(12px + env(safe-area-inset-bottom))}
+    .marquee, .hint, footer{display:none}
+    .cab{padding:0; border:none; border-radius:0; background:transparent; box-shadow:none; width:100%}
+    .screen{border-radius:0; border-width:0 0 2px 0}
+    canvas{width:min(100vw, 114vh)}
+    .pad{margin-top:14px; gap:20px}
+    .dgrid{grid-template-columns:repeat(3,64px); grid-template-rows:repeat(3,64px); gap:6px}
+    .pbtn{font-size:24px}
+    .jump{width:104px; height:104px; font-size:16px}
   }
 </style>
 </head>
