@@ -180,26 +180,28 @@ const R_WALK2 = makeSpr(T_BODY.concat([
 const R_WALK1F = flipSpr(R_WALK1), R_WALK2F = flipSpr(R_WALK2);
 
 const SNAKE1 = makeSpr([
-'.............GGG',
-'.GGG........GNGG',
-'GGGGGGG....GGGGR',
-'GG...GGGGGGG....']);
+'...............GGG',
+'.GGG..........GNGG',
+'.GGGG........GGGGR',
+'GGGGGGGG...GGGGG..',
+'GG....GGGGGGGG....']);
 const SNAKE2 = makeSpr([
-'.............GGG',
-'GGG.........GNGG',
-'.GGGGGG....GGGGR',
-'...GG.GGGGGG....']);
+'...............GGG',
+'GGG...........GNGG',
+'.GGGG........GGGGR',
+'..GGGGGG...GGGGG..',
+'....GG.GGGGGGG....']);
 const SNAKE1F = flipSpr(SNAKE1), SNAKE2F = flipSpr(SNAKE2);
 
 const FRUITS = [
-  { spr: makeSpr(['....K....','...KG....','..RRRRR..','.RRRRRRR.','RRRRRRRRR','RRRRRRRRR','RRRRRRRRR','.RRRRRRR.','..RRRRR..']), pts:100, name:'APPLE'  },
-  { spr: makeSpr(['....G....','..OOOOO..','.OOOOOOO.','OOOOOOOOO','OOOOOOOOO','OOOOOOOOO','.OOOOOOO.','..OOOOO..','.........']), pts:150, name:'ORANGE' },
-  { spr: makeSpr(['....K....','...K.K...','..K...K..','.K.....K.','RRR...RRR','RRRR.RRRR','RRRR.RRRR','.RR...RR.','.........']), pts:200, name:'CHERRY' },
-  { spr: makeSpr(['....K....','...P.P...','..P.P.P..','.P.P.P.P.','..P.P.P..','...P.P...','....P....','.........','.........']), pts:300, name:'GRAPE'  }
+  { spr: makeSpr(['.....K.....','.....KGG...','..RRRRRRR..','.RWWRRRRRR.','RRRRRRRRRRR','RRRRRRRRRRR','RRRRRRRRRRR','RRRRRRRRRRR','.RRRRRRRRR.','..RRRRRRR..','...RRRRR...']), pts:100, name:'APPLE'  },
+  { spr: makeSpr(['.....G.....','....GGG....','..OOOOOOO..','.OWWOOOOOO.','OOOOOOOOOOO','OOOOOOOOOOO','OOOOOOOOOOO','.OOOOOOOOO.','..OOOOOOO..','...........','...........']), pts:150, name:'ORANGE' },
+  { spr: makeSpr(['.....K.....','....K.K....','...K...K...','..K.....K..','RRRR...RRRR','RRRRR.RRRRR','RWRRR.RWRRR','RRRRR.RRRRR','.RRR...RRR.','...........','...........']), pts:200, name:'CHERRY' },
+  { spr: makeSpr(['.....K.....','...PP.PP...','...PP.PP...','.PP.PP.PP..','.PP.PP.PP..','...PP.PP...','...PP.PP...','.....PP....','.....PP....','...........','...........']), pts:300, name:'GRAPE'  }
 ];
-const POT = makeSpr(['..DDDDDD..','....CC....','..CCCCCC..','.CCCCCCCC.','CCCCCCCCCC','CCCCCCCCCC','.CCCCCCCC.','..CCCCCC..','..DDDDDD..']);
-const BEE1 = makeSpr(['...WW.WW..','...WWWW...','..NYNYNY..','.NYNYNYNY.','.NYNYNYNY.','..NYNYNY..','....NN....']);
-const BEE2 = makeSpr(['..........','...WWWW...','..NYNYNY..','.NYNYNYNY.','.NYNYNYNY.','..NYNYNY..','....NN....']);
+const POT = makeSpr(['..DDDDDDDD..','.....CC.....','...CCCCCC...','.CCCCCCCCCC.','CCCCCCCCCCCC','CCCCCCCCCCCC','CCCCCCCCCCCC','.CCCCCCCCCC.','..CCCCCCCC..','..DDDDDDDD..','............']);
+const BEE1 = makeSpr(['...WW..WW...','...WWWWWW...','..NYNYNYNY..','.NYNYNYNYNY.','.NYNYNYNYNY.','..NYNYNYNY..','.....NN.....']);
+const BEE2 = makeSpr(['............','...WWWWWW...','..NYNYNYNY..','.NYNYNYNYNY.','.NYNYNYNYNY.','..NYNYNYNY..','.....NN.....']);
 
 // ───────────────────────── 3×5 pixel font ─────────────────────────
 const FONT = {
@@ -212,16 +214,21 @@ const FONT = {
 'U':[5,5,5,5,7],'V':[5,5,5,5,2],'W':[5,5,7,7,5],'X':[5,5,2,5,5],'Y':[5,5,2,2,2],
 'Z':[7,1,2,4,7],'-':[0,0,7,0,0],'!':[2,2,2,0,2],'.':[0,0,0,0,2],' ':[0,0,0,0,0]
 };
-function txt(s, x, y, col){
+function txt(s, x, y, col, sc){
+  sc = sc || 1;
   g.fillStyle = col;
   s = String(s).toUpperCase();
   for(let i=0;i<s.length;i++){
     const gl = FONT[s[i]] || FONT[' '];
     for(let r=0;r<5;r++) for(let b=0;b<3;b++)
-      if(gl[r] & (4>>b)) g.fillRect(x+i*4+b, y+r, 1, 1);
+      if(gl[r] & (4>>b)) g.fillRect(x+(i*4+b)*sc, y+r*sc, sc, sc);
   }
 }
+// 가로 중앙 정렬 텍스트 (기본 2배 크기)
+const ctxt = (s,y,col,sc)=>{ sc=sc||2; txt(s, Math.round((256-String(s).length*4*sc)/2), y, col, sc); };
 const pad0 = (n,w)=>String(n).padStart(w,'0');
+const isTouch = matchMedia('(pointer:coarse)').matches || 'ontouchstart' in window;
+const PROMPT = isTouch ? 'PUSH JUMP BUTTON' : 'PUSH SPACE KEY';
 
 // ───────────────────────── audio (chiptune) ─────────────────────────
 let AC = null, muted = false;
@@ -345,7 +352,7 @@ function genStage(n){
   const nSnk = 3+Math.min(n,4);
   for(let i=0;i<nSnk;i++){
     const f=Math.floor(r()*5), x=40+Math.floor(r()*180);
-    const min=Math.max(8, x-40-r()*60), max=Math.min(248, x+40+r()*60);
+    const min=Math.max(8, x-40-r()*60), max=Math.min(238, x+40+r()*60);
     if(max-min<40){ i--; continue; }
     snakes.push({f, x, dir:r()<0.5?-1:1, min, max, sp:0.35+n*0.045+r()*0.15});
   }
@@ -477,16 +484,16 @@ function update(){
     // ── collisions ──
     if(P.st!=='dead' && P.inv<=0){
       for(const s of snakes)
-        if(Math.abs(FLOORS[s.f]-P.y)<8 && Math.abs(P.x-(s.x+8))<11){ killPlayer(); break; }
+        if(Math.abs(FLOORS[s.f]-P.y)<8 && Math.abs(P.x-(s.x+9))<12){ killPlayer(); break; }
       if(P.st!=='dead') for(const s of spikes)
         if(Math.abs(FLOORS[s.f]-P.y)<6 && Math.abs(P.x-s.x)<8){ killPlayer(); break; }
       if(P.st!=='dead') for(const b of bees)
-        if(Math.abs(b.x-P.x)<9 && Math.abs(b.y-(P.y-8))<10){ killPlayer(); break; }
+        if(Math.abs(b.x-P.x)<10 && Math.abs(b.y-(P.y-8))<11){ killPlayer(); break; }
     }
     if(P.st!=='dead'){
       for(let i=fruits.length-1;i>=0;i--){
         const f=fruits[i];
-        if(Math.abs(FLOORS[f.f]-P.y)<10 && Math.abs(P.x-f.x)<9){
+        if(Math.abs(FLOORS[f.f]-P.y)<12 && Math.abs(P.x-f.x)<10){
           const pts = FRUITS[f.t].pts;
           addScore(pts); sfxEat();
           pops.push({x:f.x,y:FLOORS[f.f]-10,s:String(pts),t:45,c:'#ffffff'});
@@ -494,7 +501,7 @@ function update(){
         }
       }
       for(const pot of pots){
-        if(!pot.used && Math.abs(FLOORS[pot.f]-P.y)<6 && Math.abs(P.x-pot.x)<8){
+        if(!pot.used && Math.abs(FLOORS[pot.f]-P.y)<8 && Math.abs(P.x-pot.x)<11){
           pot.used=true;
           if(Math.random()<0.6){
             addScore(500); sfxBonus();
@@ -551,16 +558,16 @@ function drawWorld(){
     }
   });
   // pots / fruits
-  pots.forEach(p=>{ if(!p.used) g.drawImage(POT, p.x-5, FLOORS[p.f]-9); });
-  fruits.forEach(f=> g.drawImage(FRUITS[f.t].spr, f.x-4, FLOORS[f.f]-9));
+  pots.forEach(p=>{ if(!p.used) g.drawImage(POT, p.x-6, FLOORS[p.f]-10); });
+  fruits.forEach(f=> g.drawImage(FRUITS[f.t].spr, f.x-5, FLOORS[f.f]-11));
   // snakes
   snakes.forEach(s=>{
     const fr = (frame>>3)&1;
     const spr = s.dir>0 ? (fr?SNAKE1:SNAKE2) : (fr?SNAKE1F:SNAKE2F);
-    g.drawImage(spr, s.x, FLOORS[s.f]-4);
+    g.drawImage(spr, s.x, FLOORS[s.f]-5);
   });
   // bees
-  bees.forEach(b=> g.drawImage((frame>>2)&1?BEE1:BEE2, b.x-5, b.y-4));
+  bees.forEach(b=> g.drawImage((frame>>2)&1?BEE1:BEE2, b.x-6, b.y-4));
   // player
   if(P){
     const visible = P.inv<=0 || (P.inv>>2)&1;
@@ -580,45 +587,45 @@ function drawWorld(){
     }
   }
   // popups
-  pops.forEach(p=> txt(p.s, p.x-p.s.length*2, p.y, p.c));
+  pops.forEach(p=> txt(p.s, Math.max(2, Math.min(254-p.s.length*8, p.x-p.s.length*4)), p.y, p.c, 2));
 }
 function drawHUD(){
-  txt('1UP', 4, 2, (blink>>4)&1 ? '#f83800' : '#a02000');
-  txt(pad0(score,6), 20, 2, '#ffffff');
-  txt('HI', 96, 2, '#f8d800');
-  txt(pad0(hi,6), 108, 2, '#ffffff');
-  txt('ST '+pad0(stage,2), 226, 2, '#00e8d8');
+  txt('1UP', 4, 3, (blink>>4)&1 ? '#f83800' : '#a02000', 2);
+  txt(pad0(score,6), 32, 3, '#ffffff', 2);
+  txt('HI', 104, 3, '#f8d800', 2);
+  txt(pad0(hi,6), 126, 3, '#ffffff', 2);
+  txt('ST'+pad0(stage,2), 222, 3, '#00e8d8', 2);
   // lives
-  for(let i=0;i<Math.min(lives-1,6);i++){
-    g.fillStyle=PAL.B; g.fillRect(4+i*9, 10, 6, 5);
-    g.fillStyle=PAL.K; g.fillRect(4+i*9, 9, 2, 2); g.fillRect(8+i*9, 9, 2, 2);
+  for(let i=0;i<Math.min(lives-1,5);i++){
+    g.fillStyle=PAL.B; g.fillRect(4+i*13, 18, 9, 7);
+    g.fillStyle=PAL.K; g.fillRect(4+i*13, 16, 3, 3); g.fillRect(10+i*13, 16, 3, 3);
   }
   // time bar
-  txt('TIME', 150, 10, '#8888a0');
-  const w = Math.max(0, Math.round(timer/3600*72));
-  g.fillStyle = '#282838'; g.fillRect(170, 10, 72, 5);
+  txt('TIME', 118, 17, '#8888a0', 2);
+  const w = Math.max(0, Math.round(timer/3600*96));
+  g.fillStyle = '#282838'; g.fillRect(154, 17, 96, 8);
   g.fillStyle = panic ? ((blink>>3)&1?'#f83800':'#801000')
               : (timer<900 ? '#f8a800' : '#00d060');
-  if(w>0) g.fillRect(170, 10, w, 5);
+  if(w>0) g.fillRect(154, 17, w, 8);
 }
 function drawTitle(){
   g.fillStyle='#f8d800';
   g.font='bold 40px sans-serif'; g.textAlign='center'; g.textBaseline='middle';
   g.fillStyle='#802000'; g.fillText('너구리', 130, 64);
   g.fillStyle='#f8d800'; g.fillText('너구리', 128, 62);
-  txt('- PONPOKO HOMAGE 1982 -', 82, 90, '#00e8d8');
+  ctxt('PONPOKO HOMAGE 1982', 84, '#00e8d8');
   // fruit table
   FRUITS.forEach((f,i)=>{
-    const y = 114 + i*15;
-    g.drawImage(f.spr, 86, y);
-    txt(f.name, 102, y+2, '#ffffff');
-    txt(String(f.pts)+' PTS', 140, y+2, '#f8a800');
+    const y = 108 + i*16;
+    g.drawImage(f.spr, 58, y);
+    txt(f.name, 76, y+2, '#ffffff', 2);
+    txt(String(f.pts)+' PTS', 146, y+2, '#f8a800', 2);
   });
-  g.drawImage(POT, 86, 176); txt('...?', 102, 178, '#c08040');
-  if((blink>>4)&1) txt('PUSH SPACE KEY', 100, 212, '#ffffff');
-  txt('HI-SCORE '+pad0(hi,6), 98, 230, '#f8d800');
-  g.drawImage(R_WALK1, 34, 128);
-  g.drawImage(SNAKE1F, 192, 146);
+  g.drawImage(POT, 58, 174); txt('...?', 76, 176, '#c08040', 2);
+  if((blink>>4)&1) ctxt(PROMPT, 212, '#ffffff');
+  ctxt('HI-SCORE '+pad0(hi,6), 234, '#f8d800');
+  g.drawImage(R_WALK1, 24, 130);
+  g.drawImage(SNAKE1F, 216, 150);
 }
 function draw(){
   g.fillStyle='#000'; g.fillRect(0,0,256,272);
@@ -626,15 +633,15 @@ function draw(){
   drawWorld();
   drawHUD();
   if(mode==='clear'){
-    txt('STAGE CLEAR!', 104, 122, (blink>>3)&1?'#f8d800':'#f83800');
-    txt('TIME BONUS '+bonusShown, 100, 134, '#ffffff');
+    ctxt('STAGE CLEAR!', 116, (blink>>3)&1?'#f8d800':'#f83800');
+    ctxt('TIME BONUS '+bonusShown, 132, '#ffffff');
   }
   if(mode==='over'){
-    g.fillStyle='rgba(0,0,0,0.55)'; g.fillRect(0,110,256,48);
-    txt('GAME OVER', 110, 126, '#f83800');
-    if((blink>>4)&1) txt('PUSH SPACE KEY', 100, 140, '#ffffff');
+    g.fillStyle='rgba(0,0,0,0.55)'; g.fillRect(0,106,256,52);
+    ctxt('GAME OVER', 118, '#f83800');
+    if((blink>>4)&1) ctxt(PROMPT, 136, '#ffffff');
   }
-  if(muted) txt('MUTE', 4, 264, '#666680');
+  if(muted) txt('MUTE', 4, 260, '#666680', 2);
 }
 
 // ───────────────────────── main loop (60fps fixed) ─────────────────────────
