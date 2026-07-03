@@ -45,7 +45,7 @@
     box-shadow:inset 0 0 40px rgba(0,0,0,.9);
   }
   canvas{
-    display:block; width:min(88vw,768px); aspect-ratio:8/7;
+    display:block; width:min(88vw,720px,78vh); aspect-ratio:256/272;
     image-rendering:pixelated; background:#000;
     touch-action:none;
   }
@@ -89,7 +89,7 @@
     .marquee, .hint, footer{display:none}
     .cab{padding:0; border:none; border-radius:0; background:transparent; box-shadow:none; width:100%}
     .screen{border-radius:0; border-width:0 0 2px 0}
-    canvas{width:min(100vw, 114vh)}
+    canvas{width:min(100vw, 94vh)}
     .pad{margin-top:14px; gap:20px}
     .dgrid{grid-template-columns:repeat(3,64px); grid-template-rows:repeat(3,64px); gap:6px}
     .pbtn{font-size:24px}
@@ -106,7 +106,7 @@
 
 <div class="cab">
   <div class="screen">
-    <canvas id="cv" width="256" height="224"></canvas>
+    <canvas id="cv" width="256" height="272"></canvas>
     <div class="scan"></div>
     <div class="glass"></div>
   </div>
@@ -125,7 +125,7 @@
   <button class="pbtn jump" data-k="j" aria-label="점프">JUMP</button>
 </div>
 
-<footer>SQUARE-WAVE CHIPTUNE · CANVAS PIXEL RENDER · 256×224</footer>
+<footer>SQUARE-WAVE CHIPTUNE · CANVAS PIXEL RENDER · 256×272</footer>
 
 <script>
 'use strict';
@@ -151,42 +151,55 @@ function flipSpr(c){
   const x = f.getContext('2d'); x.translate(c.width,0); x.scale(-1,1); x.drawImage(c,0,0);
   return f;
 }
-const R_BODY = [
-'...KK...KK..',
-'..KBBK.KBBK.',
-'.KBBBBKBBBK.',
-'.KBBBBBBBBK.',
-'KBKKTTTTKKBK',
-'KBKWTTTTWKBK',
-'.KTTTTTTTTK.',
-'.KTTTNNTTTK.',
-'.KBTTTTTTBK.',
-'..KBBBBBBK..'];
-const R_WALK1 = makeSpr(R_BODY.concat(['..KBK..KBK..','..KK....KK..']));
-const R_WALK2 = makeSpr(R_BODY.concat(['...KBKKBK...','...KK..KK...']));
+// 원작풍 두발 직립 너구리 (16×19) — 크림색 배·얼굴, 눈 주위 마스크
+const T_BODY = [
+'....KK....KK....',
+'...KBBK..KBBK...',
+'..KBBBBKKBBBBK..',
+'.KBBBBBBBBBBBBK.',
+'.KBKKTTTTTTKKBK.',
+'.KBKWKTTTTKWKBK.',
+'.KBTTTTTTTTTTBK.',
+'.KBTTTTNNTTTTBK.',
+'..KBTTTTTTTTBK..',
+'..KBBBTTTTBBBK..',
+'.KBBTTTTTTTTBBK.',
+'KBBBTTTTTTTTBBBK',
+'KBBBTTTTTTTTBBBK',
+'.KBBTTTTTTTTBBK.',
+'..KBBTTTTTTBBK..',
+'...KBBBBBBBBK...'];
+const R_WALK1 = makeSpr(T_BODY.concat([
+'...KBBK..KBBK...',
+'...KBBK..KBBK...',
+'..KBBBK..KBBBK..']));
+const R_WALK2 = makeSpr(T_BODY.concat([
+'....KBBKKBBK....',
+'....KBBKKBBK....',
+'....KBBKKBBK....']));
 const R_WALK1F = flipSpr(R_WALK1), R_WALK2F = flipSpr(R_WALK2);
 
 const SNAKE1 = makeSpr([
-'.........GGG',
-'.GGG....GNGG',
-'GGGGGG.GGGGR',
-'GG..GGGGG...']);
+'.............GGG',
+'.GGG........GNGG',
+'GGGGGGG....GGGGR',
+'GG...GGGGGGG....']);
 const SNAKE2 = makeSpr([
-'.........GGG',
-'GGG.....GNGG',
-'.GGGGG.GGGGR',
-'..GG.GGGG...']);
+'.............GGG',
+'GGG.........GNGG',
+'.GGGGGG....GGGGR',
+'...GG.GGGGGG....']);
 const SNAKE1F = flipSpr(SNAKE1), SNAKE2F = flipSpr(SNAKE2);
 
 const FRUITS = [
-  { spr: makeSpr(['...K...','..KG...','.RRRRR.','RRRRRRR','RRRRRRR','RRRRRRR','.RRRRR.']), pts:100, name:'APPLE'  },
-  { spr: makeSpr(['...G...','.OOOOO.','OOOOOOO','OOOOOOO','OOOOOOO','.OOOOO.','.......']), pts:150, name:'ORANGE' },
-  { spr: makeSpr(['...K...','..K.K..','.K...K.','RR...RR','RRR.RRR','RRR.RRR','.R...R.']), pts:200, name:'CHERRY' },
-  { spr: makeSpr(['...K...','..P.P..','.P.P.P.','..P.P..','.P.P.P.','..P.P..','...P...']), pts:300, name:'GRAPE'  }
+  { spr: makeSpr(['....K....','...KG....','..RRRRR..','.RRRRRRR.','RRRRRRRRR','RRRRRRRRR','RRRRRRRRR','.RRRRRRR.','..RRRRR..']), pts:100, name:'APPLE'  },
+  { spr: makeSpr(['....G....','..OOOOO..','.OOOOOOO.','OOOOOOOOO','OOOOOOOOO','OOOOOOOOO','.OOOOOOO.','..OOOOO..','.........']), pts:150, name:'ORANGE' },
+  { spr: makeSpr(['....K....','...K.K...','..K...K..','.K.....K.','RRR...RRR','RRRR.RRRR','RRRR.RRRR','.RR...RR.','.........']), pts:200, name:'CHERRY' },
+  { spr: makeSpr(['....K....','...P.P...','..P.P.P..','.P.P.P.P.','..P.P.P..','...P.P...','....P....','.........','.........']), pts:300, name:'GRAPE'  }
 ];
-const POT = makeSpr(['..DDDD..','...CC...','.CCCCCC.','CCCCCCCC','CCCCCCCC','.CCCCCC.','..DDDD..']);
-const BEE1 = makeSpr(['...WW...','..WWWW..','.YNYNYN.','YNYNYNYN','.YNYNYN.','...NN...']);
-const BEE2 = makeSpr(['........','..WWWW..','.YNYNYN.','YNYNYNYN','.YNYNYN.','...NN...']);
+const POT = makeSpr(['..DDDDDD..','....CC....','..CCCCCC..','.CCCCCCCC.','CCCCCCCCCC','CCCCCCCCCC','.CCCCCCCC.','..CCCCCC..','..DDDDDD..']);
+const BEE1 = makeSpr(['...WW.WW..','...WWWW...','..NYNYNY..','.NYNYNYNY.','.NYNYNYNY.','..NYNYNY..','....NN....']);
+const BEE2 = makeSpr(['..........','...WWWW...','..NYNYNY..','.NYNYNYNY.','.NYNYNYNY.','..NYNYNY..','....NN....']);
 
 // ───────────────────────── 3×5 pixel font ─────────────────────────
 const FONT = {
@@ -274,8 +287,8 @@ function sfxClear(){
 }
 
 // ───────────────────────── game state ─────────────────────────
-const FLOORS = [205,168,131,94,57];       // 발판 윗면 y (아래→위)
-const JT = 26, JUMP_H = 14, SPD = 1.15, CLIMB = 1.0;
+const FLOORS = [250,202,154,106,58];      // 발판 윗면 y (아래→위, 5층 유지·세로 확장)
+const JT = 26, JUMP_H = 16, SPD = 1.15, CLIMB = 1.2;
 let mode='title', frame=0, blink=0;
 let stage=1, score=0, lives=3, nextLife=10000;
 let hi = +(localStorage.getItem('neoguri_hi')||10000);
@@ -306,26 +319,26 @@ function genStage(n){
   const nearLadder = (f,x,dist)=>ladders.some(l=>(l.lo===FLOORS[f]||l.hi===FLOORS[f]) && Math.abs(l.x-x)<dist);
   const nSpk = 2+Math.min(n,4); let guard=0;
   while(spikes.length<nSpk && guard++<400){
-    const f=Math.floor(r()*5), x=20+Math.floor(r()*216);
-    if(f===0 && x<48) continue;
-    if(nearLadder(f,x,18)) continue;
-    if(spikes.some(s=>s.f===f && Math.abs(s.x-x)<26)) continue;
+    const f=Math.floor(r()*5), x=22+Math.floor(r()*212);
+    if(f===0 && x<52) continue;
+    if(nearLadder(f,x,20)) continue;
+    if(spikes.some(s=>s.f===f && Math.abs(s.x-x)<30)) continue;
     spikes.push({f,x});
   }
   guard=0;
   while(fruits.length<12 && guard++<600){
     const f=Math.floor(r()*5), x=14+Math.floor(r()*228);
-    if(f===0 && x<36) continue;
-    if(spikes.some(s=>s.f===f && Math.abs(s.x-x)<16)) continue;
-    if(fruits.some(o=>o.f===f && Math.abs(o.x-x)<15)) continue;
+    if(f===0 && x<40) continue;
+    if(spikes.some(s=>s.f===f && Math.abs(s.x-x)<18)) continue;
+    if(fruits.some(o=>o.f===f && Math.abs(o.x-x)<17)) continue;
     fruits.push({f,x,t:Math.floor(r()*4)});
   }
   guard=0;
   while(pots.length<2 && guard++<300){
     const f=1+Math.floor(r()*4), x=18+Math.floor(r()*220);
-    if(nearLadder(f,x,14)) continue;
-    if(spikes.some(s=>s.f===f && Math.abs(s.x-x)<16)) continue;
-    if(fruits.some(o=>o.f===f && Math.abs(o.x-x)<12)) continue;
+    if(nearLadder(f,x,16)) continue;
+    if(spikes.some(s=>s.f===f && Math.abs(s.x-x)<18)) continue;
+    if(fruits.some(o=>o.f===f && Math.abs(o.x-x)<14)) continue;
     if(pots.some(o=>o.f===f && Math.abs(o.x-x)<30)) continue;
     pots.push({f,x,used:false});
   }
@@ -406,13 +419,13 @@ function update(){
       let moved=false;
       if(key.l){ P.x-=SPD; P.dir=-1; moved=true; }
       if(key.r){ P.x+=SPD; P.dir=1; moved=true; }
-      P.x = Math.max(6, Math.min(250, P.x));
+      P.x = Math.max(8, Math.min(248, P.x));
       if(moved) P.anim++;
       if(key.u){
-        const L = ladders.find(l=>l.lo===FLOORS[P.f] && Math.abs(l.x-P.x)<6);
+        const L = ladders.find(l=>l.lo===FLOORS[P.f] && Math.abs(l.x-P.x)<7);
         if(L){ P.st='climb'; P.lad=L; P.x=L.x; P.y-=CLIMB; }
       } else if(key.d){
-        const L = ladders.find(l=>l.hi===FLOORS[P.f] && Math.abs(l.x-P.x)<6);
+        const L = ladders.find(l=>l.hi===FLOORS[P.f] && Math.abs(l.x-P.x)<7);
         if(L){ P.st='climb'; P.lad=L; P.x=L.x; P.y+=CLIMB; }
       }
       if(jumpEdge && P.st==='walk'){ P.st='jump'; P.jt=0; sfxJump(); }
@@ -427,7 +440,7 @@ function update(){
       P.jt++;
       if(key.l){ P.x-=SPD; P.dir=-1; }
       if(key.r){ P.x+=SPD; P.dir=1; }
-      P.x = Math.max(6, Math.min(250, P.x));
+      P.x = Math.max(8, Math.min(248, P.x));
       P.y = FLOORS[P.f] - Math.sin(Math.PI*P.jt/JT)*JUMP_H;
       if(P.jt>=JT){ P.y=FLOORS[P.f]; P.st='walk'; }
     } else if(P.st==='dead'){
@@ -451,7 +464,7 @@ function update(){
     bees = bees.filter(b=>b.t>0);
     bees.forEach(b=>{
       b.t--;
-      const tx=P.x, ty=P.y-6;
+      const tx=P.x, ty=P.y-8;
       b.vx += (tx>b.x?0.045:-0.045); b.vy += (ty>b.y?0.045:-0.045);
       b.vx = Math.max(-1.1, Math.min(1.1, b.vx));
       b.vy = Math.max(-1.1, Math.min(1.1, b.vy));
@@ -464,16 +477,16 @@ function update(){
     // ── collisions ──
     if(P.st!=='dead' && P.inv<=0){
       for(const s of snakes)
-        if(Math.abs(FLOORS[s.f]-P.y)<7 && Math.abs(P.x-(s.x+6))<9){ killPlayer(); break; }
+        if(Math.abs(FLOORS[s.f]-P.y)<8 && Math.abs(P.x-(s.x+8))<11){ killPlayer(); break; }
       if(P.st!=='dead') for(const s of spikes)
-        if(Math.abs(FLOORS[s.f]-P.y)<5 && Math.abs(P.x-s.x)<7){ killPlayer(); break; }
+        if(Math.abs(FLOORS[s.f]-P.y)<6 && Math.abs(P.x-s.x)<8){ killPlayer(); break; }
       if(P.st!=='dead') for(const b of bees)
-        if(Math.abs(b.x-P.x)<7 && Math.abs(b.y-(P.y-6))<9){ killPlayer(); break; }
+        if(Math.abs(b.x-P.x)<9 && Math.abs(b.y-(P.y-8))<10){ killPlayer(); break; }
     }
     if(P.st!=='dead'){
       for(let i=fruits.length-1;i>=0;i--){
         const f=fruits[i];
-        if(Math.abs(FLOORS[f.f]-P.y)<9 && Math.abs(P.x-f.x)<7){
+        if(Math.abs(FLOORS[f.f]-P.y)<10 && Math.abs(P.x-f.x)<9){
           const pts = FRUITS[f.t].pts;
           addScore(pts); sfxEat();
           pops.push({x:f.x,y:FLOORS[f.f]-10,s:String(pts),t:45,c:'#ffffff'});
@@ -516,9 +529,9 @@ function drawWorld(){
   // ladders (behind platforms)
   g.fillStyle = PAL.Y;
   ladders.forEach(l=>{
-    g.fillRect(l.x-4, l.hi, 2, l.lo-l.hi);
-    g.fillRect(l.x+2, l.hi, 2, l.lo-l.hi);
-    for(let y=l.hi+3; y<l.lo; y+=5) g.fillRect(l.x-3, y, 6, 1);
+    g.fillRect(l.x-5, l.hi, 2, l.lo-l.hi);
+    g.fillRect(l.x+3, l.hi, 2, l.lo-l.hi);
+    for(let y=l.hi+3; y<l.lo; y+=6) g.fillRect(l.x-4, y, 8, 1);
   });
   // platforms
   FLOORS.forEach(y=>{
@@ -532,14 +545,14 @@ function drawWorld(){
   spikes.forEach(s=>{
     const fy = FLOORS[s.f];
     for(let i=-1;i<=1;i++){
-      const bx = s.x + i*3;
-      g.fillRect(bx-1, fy-1, 3, 1); g.fillRect(bx-1, fy-2, 3, 1);
-      g.fillRect(bx, fy-4, 1, 2);
+      const bx = s.x + i*4;
+      g.fillRect(bx-1, fy-2, 3, 2);
+      g.fillRect(bx, fy-6, 1, 4);
     }
   });
   // pots / fruits
-  pots.forEach(p=>{ if(!p.used) g.drawImage(POT, p.x-4, FLOORS[p.f]-7); });
-  fruits.forEach(f=> g.drawImage(FRUITS[f.t].spr, f.x-3, FLOORS[f.f]-7));
+  pots.forEach(p=>{ if(!p.used) g.drawImage(POT, p.x-5, FLOORS[p.f]-9); });
+  fruits.forEach(f=> g.drawImage(FRUITS[f.t].spr, f.x-4, FLOORS[f.f]-9));
   // snakes
   snakes.forEach(s=>{
     const fr = (frame>>3)&1;
@@ -547,7 +560,7 @@ function drawWorld(){
     g.drawImage(spr, s.x, FLOORS[s.f]-4);
   });
   // bees
-  bees.forEach(b=> g.drawImage((frame>>2)&1?BEE1:BEE2, b.x-4, b.y-3));
+  bees.forEach(b=> g.drawImage((frame>>2)&1?BEE1:BEE2, b.x-5, b.y-4));
   // player
   if(P){
     const visible = P.inv<=0 || (P.inv>>2)&1;
@@ -555,14 +568,14 @@ function drawWorld(){
       let spr;
       if(P.st==='dead'){
         g.save();
-        g.translate(P.x, P.y-6);
+        g.translate(P.x, P.y-9);
         g.scale(1,-1);
-        g.drawImage(P.dir>0?R_WALK1:R_WALK1F, -6, -6);
+        g.drawImage(P.dir>0?R_WALK1:R_WALK1F, -8, -10);
         g.restore();
       } else {
         const fr = (P.st==='walk'&&!key.l&&!key.r&&P.st!=='climb') ? 0 : (P.anim>>3)&1;
         if(P.dir>0) spr = fr?R_WALK2:R_WALK1; else spr = fr?R_WALK2F:R_WALK1F;
-        g.drawImage(spr, P.x-6, P.y-12);
+        g.drawImage(spr, P.x-8, P.y-19);
       }
     }
   }
@@ -591,37 +604,37 @@ function drawHUD(){
 function drawTitle(){
   g.fillStyle='#f8d800';
   g.font='bold 40px sans-serif'; g.textAlign='center'; g.textBaseline='middle';
-  g.fillStyle='#802000'; g.fillText('너구리', 130, 58);
-  g.fillStyle='#f8d800'; g.fillText('너구리', 128, 56);
-  txt('- PONPOKO HOMAGE 1982 -', 82, 82, '#00e8d8');
+  g.fillStyle='#802000'; g.fillText('너구리', 130, 64);
+  g.fillStyle='#f8d800'; g.fillText('너구리', 128, 62);
+  txt('- PONPOKO HOMAGE 1982 -', 82, 90, '#00e8d8');
   // fruit table
   FRUITS.forEach((f,i)=>{
-    const y = 104 + i*14;
-    g.drawImage(f.spr, 88, y);
-    txt(f.name, 102, y+1, '#ffffff');
-    txt(String(f.pts)+' PTS', 136, y+1, '#f8a800');
+    const y = 114 + i*15;
+    g.drawImage(f.spr, 86, y);
+    txt(f.name, 102, y+2, '#ffffff');
+    txt(String(f.pts)+' PTS', 140, y+2, '#f8a800');
   });
-  g.drawImage(POT, 88, 160); txt('...?', 102, 161, '#c08040');
-  if((blink>>4)&1) txt('PUSH SPACE KEY', 100, 186, '#ffffff');
-  txt('HI-SCORE '+pad0(hi,6), 98, 202, '#f8d800');
-  g.drawImage(R_WALK1, 40, 120);
-  g.drawImage(SNAKE1F, 190, 126);
+  g.drawImage(POT, 86, 176); txt('...?', 102, 178, '#c08040');
+  if((blink>>4)&1) txt('PUSH SPACE KEY', 100, 212, '#ffffff');
+  txt('HI-SCORE '+pad0(hi,6), 98, 230, '#f8d800');
+  g.drawImage(R_WALK1, 34, 128);
+  g.drawImage(SNAKE1F, 192, 146);
 }
 function draw(){
-  g.fillStyle='#000'; g.fillRect(0,0,256,224);
+  g.fillStyle='#000'; g.fillRect(0,0,256,272);
   if(mode==='title'){ drawTitle(); return; }
   drawWorld();
   drawHUD();
   if(mode==='clear'){
-    txt('STAGE CLEAR!', 104, 100, (blink>>3)&1?'#f8d800':'#f83800');
-    txt('TIME BONUS '+bonusShown, 100, 112, '#ffffff');
+    txt('STAGE CLEAR!', 104, 122, (blink>>3)&1?'#f8d800':'#f83800');
+    txt('TIME BONUS '+bonusShown, 100, 134, '#ffffff');
   }
   if(mode==='over'){
-    g.fillStyle='rgba(0,0,0,0.55)'; g.fillRect(0,88,256,48);
-    txt('GAME OVER', 110, 104, '#f83800');
-    if((blink>>4)&1) txt('PUSH SPACE KEY', 100, 118, '#ffffff');
+    g.fillStyle='rgba(0,0,0,0.55)'; g.fillRect(0,110,256,48);
+    txt('GAME OVER', 110, 126, '#f83800');
+    if((blink>>4)&1) txt('PUSH SPACE KEY', 100, 140, '#ffffff');
   }
-  if(muted) txt('MUTE', 4, 216, '#666680');
+  if(muted) txt('MUTE', 4, 264, '#666680');
 }
 
 // ───────────────────────── main loop (60fps fixed) ─────────────────────────
